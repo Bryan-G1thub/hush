@@ -1,21 +1,16 @@
-# Hush
+# hush
 
-A secure and private messaging application.
-
-## Description
-
-Hush is a privacy-focused messaging application that prioritizes user security and data protection.
-
-## Features
-
-- End-to-end encryption
-- Secure messaging
-- User privacy protection
+A new Flutter project.
 
 ## Getting Started
 
-More information coming soon...
+This project is a starting point for a Flutter application.
 
-## License
+A few resources to get you started if this is your first Flutter project:
 
-This project is licensed under the MIT License - see the LICENSE file for details. 
+- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
+- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+
+For help getting started with Flutter development, view the
+[online documentation](https://docs.flutter.dev/), which offers tutorials,
+samples, guidance on mobile development, and a full API reference.
