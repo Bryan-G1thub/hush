@@ -4,19 +4,30 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'home_screen.dart';
 
 class AuthScreen extends StatefulWidget {
-  const AuthScreen({super.key});
+  final bool initialIsLogin;
+  
+  const AuthScreen({
+    super.key,
+    this.initialIsLogin = true,
+  });
 
   @override
   State<AuthScreen> createState() => _AuthScreenState();
 }
 
 class _AuthScreenState extends State<AuthScreen> {
-  bool isLogin = true; // Toggle between login and signup
+  late bool isLogin; // Toggle between login and signup
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _nameController = TextEditingController();
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    isLogin = widget.initialIsLogin;
+  }
 
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
@@ -42,6 +53,7 @@ class _AuthScreenState extends State<AuthScreen> {
         // Create user document in Firestore
         await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set({
           'name': _nameController.text.trim(),
+          'role': 'agent',
           'createdAt': FieldValue.serverTimestamp(),
         });
       }
@@ -62,13 +74,23 @@ class _AuthScreenState extends State<AuthScreen> {
       } else if (e.code == 'wrong-password') {
         message = 'Wrong password provided for that user.';
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('An error occurred')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('An error occurred'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -99,8 +121,8 @@ class _AuthScreenState extends State<AuthScreen> {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Colors.deepPurple.shade900,
                   Colors.black,
+                  Colors.black.withOpacity(0.8),
                 ],
               ),
             ),
@@ -119,7 +141,6 @@ class _AuthScreenState extends State<AuthScreen> {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             const SizedBox(height: 40),
-                            // Title
                             Text(
                               isLogin ? 'Welcome Back' : 'Create Account',
                               style: const TextStyle(
@@ -141,7 +162,6 @@ class _AuthScreenState extends State<AuthScreen> {
                               textAlign: TextAlign.center,
                             ),
                             const SizedBox(height: 40),
-                            // Name field (only for signup)
                             if (!isLogin) ...[
                               TextFormField(
                                 controller: _nameController,
@@ -155,7 +175,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(color: Colors.deepPurple),
+                                    borderSide: const BorderSide(color: Colors.white),
                                   ),
                                   filled: true,
                                   fillColor: Colors.white.withOpacity(0.1),
@@ -169,7 +189,6 @@ class _AuthScreenState extends State<AuthScreen> {
                               ),
                               const SizedBox(height: 16),
                             ],
-                            // Email field
                             TextFormField(
                               controller: _emailController,
                               style: const TextStyle(color: Colors.white),
@@ -182,7 +201,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(color: Colors.deepPurple),
+                                  borderSide: const BorderSide(color: Colors.white),
                                 ),
                                 filled: true,
                                 fillColor: Colors.white.withOpacity(0.1),
@@ -198,7 +217,6 @@ class _AuthScreenState extends State<AuthScreen> {
                               },
                             ),
                             const SizedBox(height: 16),
-                            // Password field
                             TextFormField(
                               controller: _passwordController,
                               style: const TextStyle(color: Colors.white),
@@ -212,7 +230,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(color: Colors.deepPurple),
+                                  borderSide: const BorderSide(color: Colors.white),
                                 ),
                                 filled: true,
                                 fillColor: Colors.white.withOpacity(0.1),
@@ -228,11 +246,10 @@ class _AuthScreenState extends State<AuthScreen> {
                               },
                             ),
                             const SizedBox(height: 24),
-                            // Submit button
                             ElevatedButton(
                               onPressed: _isLoading ? null : _submitForm,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.deepPurple,
+                                backgroundColor: Colors.white,
                                 padding: const EdgeInsets.symmetric(vertical: 16),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
@@ -243,7 +260,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                       height: 20,
                                       width: 20,
                                       child: CircularProgressIndicator(
-                                        color: Colors.white,
+                                        color: Colors.black,
                                         strokeWidth: 2,
                                       ),
                                     )
@@ -252,12 +269,11 @@ class _AuthScreenState extends State<AuthScreen> {
                                       style: const TextStyle(
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold,
-                                        color: Colors.white,
+                                        color: Colors.black,
                                       ),
                                     ),
                             ),
                             const SizedBox(height: 16),
-                            // Toggle between login and signup
                             TextButton(
                               onPressed: _isLoading
                                   ? null
