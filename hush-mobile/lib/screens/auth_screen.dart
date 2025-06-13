@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'home_screen.dart';
+import 'task_in_progress_screen.dart';
 
 class AuthScreen extends StatefulWidget {
   final bool initialIsLogin;
@@ -39,10 +40,74 @@ class _AuthScreenState extends State<AuthScreen> {
     try {
       if (isLogin) {
         // Login
-        await FirebaseAuth.instance.signInWithEmailAndPassword(
+        final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
         );
+
+        // Check user role in Firestore
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userCredential.user!.uid)
+            .get();
+
+        if (!userDoc.exists) {
+          // Sign out the user since their data is missing
+          await FirebaseAuth.instance.signOut();
+          throw FirebaseAuthException(
+            code: 'user-not-found',
+            message: 'User data not found. Please contact support.',
+          );
+        }
+
+        final userData = userDoc.data();
+        if (userData == null) {
+          // Sign out the user since their data is null
+          await FirebaseAuth.instance.signOut();
+          throw FirebaseAuthException(
+            code: 'invalid-data',
+            message: 'User data is invalid. Please contact support.',
+          );
+        }
+
+        final userRole = userData['role'] as String?;
+        
+        if (userRole == null || userRole != 'agent') {
+          // Sign out the user since they're not an agent
+          await FirebaseAuth.instance.signOut();
+          throw FirebaseAuthException(
+            code: 'invalid-role',
+            message: 'This app is only for mystery shoppers. Please use our website for business access.',
+          );
+        }
+
+        // Check for active tasks
+        final tasksQuery = await FirebaseFirestore.instance
+            .collection('tasks')
+            .where('assignedTo', isEqualTo: userCredential.user!.uid)
+            .where('status', isEqualTo: 'in_progress')
+            .limit(1)
+            .get();
+
+        if (mounted) {
+          if (tasksQuery.docs.isNotEmpty) {
+            // If there's an active task, go to TaskInProgressScreen
+            final taskDoc = tasksQuery.docs.first;
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (context) => TaskInProgressScreen(
+                  taskId: taskDoc.id,
+                  taskData: taskDoc.data(),
+                ),
+              ),
+            );
+          } else {
+            // If no active task, go to HomeScreen
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => const HomeScreen()),
+            );
+          }
+        }
       } else {
         // Signup
         final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
@@ -56,12 +121,12 @@ class _AuthScreenState extends State<AuthScreen> {
           'role': 'agent',
           'createdAt': FieldValue.serverTimestamp(),
         });
-      }
 
-      if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-        );
+        if (mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const HomeScreen()),
+          );
+        }
       }
     } on FirebaseAuthException catch (e) {
       String message = 'An error occurred';
@@ -70,9 +135,13 @@ class _AuthScreenState extends State<AuthScreen> {
       } else if (e.code == 'email-already-in-use') {
         message = 'The account already exists for that email.';
       } else if (e.code == 'user-not-found') {
-        message = 'No user found for that email.';
+        message = e.message ?? 'No user found for that email.';
       } else if (e.code == 'wrong-password') {
         message = 'Wrong password provided for that user.';
+      } else if (e.code == 'invalid-role') {
+        message = e.message ?? 'This app is only for mystery shoppers. Please use our website for business access.';
+      } else if (e.code == 'invalid-data') {
+        message = e.message ?? 'User data is invalid. Please contact support.';
       }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
