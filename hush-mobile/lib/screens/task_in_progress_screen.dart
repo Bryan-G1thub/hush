@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'home_screen.dart';
 
 class TaskInProgressScreen extends StatelessWidget {
   final String taskId;
@@ -11,6 +12,40 @@ class TaskInProgressScreen extends StatelessWidget {
     required this.taskId,
     required this.taskData,
   });
+
+  Future<void> _completeTask(BuildContext context) async {
+    try {
+      // Update task status in Firestore
+      await FirebaseFirestore.instance.collection('tasks').doc(taskId).update({
+        'status': 'COMPLETED',
+        'completedAt': FieldValue.serverTimestamp(),
+      });
+
+      if (context.mounted) {
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Task completed successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // Navigate back to home screen
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error completing task'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,11 +67,6 @@ class TaskInProgressScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.white),
-                  onPressed: () => Navigator.pop(context),
-                ),
-                const SizedBox(height: 24),
                 Text(
                   'Task in Progress',
                   style: const TextStyle(
@@ -88,7 +118,7 @@ class TaskInProgressScreen extends StatelessWidget {
                               if (snapshot.hasData && snapshot.data!.exists) {
                                 final userData = snapshot.data!.data() as Map<String, dynamic>;
                                 return Text(
-                                  'Assigned To: ${userData['email'] ?? 'Unknown User'}',
+                                  'Assigned To: ${userData['name'] ?? 'Unknown User'}',
                                   style: const TextStyle(
                                     fontSize: 18,
                                     color: Colors.white70,
@@ -116,6 +146,29 @@ class TaskInProgressScreen extends StatelessWidget {
                           ),
                         ],
                       ],
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                // Add Complete Task Button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => _completeTask(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Complete Task',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ),
