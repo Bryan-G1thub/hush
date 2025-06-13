@@ -10,7 +10,7 @@ import { signOut } from 'firebase/auth';
 interface Task {
   id: string;
   test: string;
-  status: 'live';
+  status: 'LIVE';
   createdAt: string;
 }
 
@@ -60,7 +60,7 @@ export default function Dashboard() {
       await addDoc(collection(db, 'tasks'), {
         test: newTask.test,
         clientId: user.uid,
-        status: 'live',
+        status: 'LIVE',
         createdAt: Timestamp.now(),
       });
       setNewTask({ test: '' });
